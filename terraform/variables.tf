@@ -59,3 +59,30 @@ variable "enable_nat_gateway" {
   type        = bool
   default     = false
 }
+
+variable "alert_email" {
+  description = "Correo que recibe las alertas de AWS Budgets (50% y 100%). Ponlo en terraform.tfvars (ignorado por git)."
+  type        = string
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
+    error_message = "alert_email debe ser una dirección de correo válida."
+  }
+}
+
+variable "budget_limit_usd" {
+  description = "Tope mensual en USD acordado con el docente (alertas al 50% y 100%)."
+  type        = number
+  default     = 50
+}
+
+variable "alb_deletion_protection" {
+  description = "ELB.6. Para hacer terraform destroy primero aplica con false."
+  type        = bool
+  default     = true
+}
+
+variable "enable_ec2_interface_endpoint" {
+  description = "Crea el endpoint de interfaz del servicio EC2 (control EC2.10). Genera cargos por hora y por AZ."
+  type        = bool
+  default     = false
+}

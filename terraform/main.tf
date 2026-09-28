@@ -134,11 +134,18 @@ resource "aws_security_group" "app" {
     security_groups = [aws_security_group.alb.id]
   }
   egress {
-    description = "HTTPS egress for AWS service endpoints"
+    description = "HTTPS hacia los endpoints de interfaz (SSM) dentro de la VPC"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.vpc_cidr]
+  }
+  egress {
+    description     = "HTTPS hacia S3 solo por el gateway endpoint (prefix list)"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    prefix_list_ids = [aws_vpc_endpoint.s3.prefix_list_id]
   }
   tags = { Name = "${var.project_name}-app-sg" }
 }
@@ -178,7 +185,17 @@ resource "aws_lb" "app" {
   internal           = false
   subnets            = aws_subnet.public[*].id
   security_groups    = [aws_security_group.alb.id]
-  tags               = { Name = "${var.project_name}-alb" }
+
+  drop_invalid_header_fields = true
+  enable_deletion_protection = var.alb_deletion_protection
+  access_logs {
+    bucket  = aws_s3_bucket.logs.id
+    prefix  = "alb"
+    enabled = true
+  }
+  depends_on = [aws_s3_bucket_policy.logs]
+
+  tags = { Name = "${var.project_name}-alb" }
 }
 resource "aws_lb_target_group" "app" {
   name        = substr("${var.project_name}-tg", 0, 32)
@@ -371,6 +388,7 @@ resource "aws_s3_bucket_policy" "config" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      { Sid = "DenyInsecureTransport", Effect = "Deny", Principal = "*", Action = "s3:*", Resource = [aws_s3_bucket.config[0].arn, "${aws_s3_bucket.config[0].arn}/*"], Condition = { Bool = { "aws:SecureTransport" = "false" } } },
       { Sid = "AWSConfigBucketPermissionsCheck", Effect = "Allow", Principal = { Service = "config.amazonaws.com" }, Action = ["s3:GetBucketAcl", "s3:ListBucket"], Resource = aws_s3_bucket.config[0].arn },
       { Sid = "AWSConfigBucketDelivery", Effect = "Allow", Principal = { Service = "config.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.config[0].arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/Config/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control" } } }
     ]
@@ -460,6 +478,7 @@ resource "aws_s3_bucket_policy" "trail" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      { Sid = "DenyInsecureTransport", Effect = "Deny", Principal = "*", Action = "s3:*", Resource = [aws_s3_bucket.trail[0].arn, "${aws_s3_bucket.trail[0].arn}/*"], Condition = { Bool = { "aws:SecureTransport" = "false" } } },
       { Sid = "CloudTrailAclCheck", Effect = "Allow", Principal = { Service = "cloudtrail.amazonaws.com" }, Action = "s3:GetBucketAcl", Resource = aws_s3_bucket.trail[0].arn, Condition = { StringEquals = { "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail" } } },
       { Sid = "CloudTrailWrite", Effect = "Allow", Principal = { Service = "cloudtrail.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.trail[0].arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control", "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail" } } }
     ]

@@ -1,10 +1,21 @@
+cd /mnt/c/Users/mjuli/OneDrive/Documentos/GitHub/Zero-Trust-Project
+cat > .gitignore <<'EOF'
+# Terraform
 **/.terraform/*
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
 crash.log
 crash.*.log
+terraform.tfvars
+*.auto.tfvars
+
+# Secretos
 *.pem
 *.key
 .env
-terraform.tfvars
+
+# Evidencia generada por scripts/collect-evidence.sh (trae ID de cuenta y ARNs)
+docs/evidencias/
+EOF

@@ -4,3 +4,6 @@ environment                   = "academic"
 enable_security_services      = true
 enable_ssm_interface_endpoints = true
 enable_nat_gateway            = false # NAT tiene cargos; habilitar solo con permiso/presupuesto.
+alert_email                   = "tu-correo@ejemplo.com" # Budgets 50%/100%
+budget_limit_usd              = 50                      # acordar con el docente
+
