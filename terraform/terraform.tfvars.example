@@ -1,4 +1,4 @@
-aws_region                    = "us-east-1"
+aws_region                    = "us-east-2"
 project_name                  = "zero-trust-lab"
 environment                   = "academic"
 enable_security_services      = true
