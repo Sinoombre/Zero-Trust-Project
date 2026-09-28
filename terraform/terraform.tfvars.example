@@ -1,0 +1,6 @@
+aws_region                    = "us-east-1"
+project_name                  = "zero-trust-lab"
+environment                   = "academic"
+enable_security_services      = true
+enable_ssm_interface_endpoints = true
+enable_nat_gateway            = false # NAT tiene cargos; habilitar solo con permiso/presupuesto.
