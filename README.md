@@ -57,7 +57,7 @@ Revisa `enable_nat_gateway`, `enable_ssm_interface_endpoints`,
 
 ## Equipo
 
-** Firmes por Palmer**
+**Firmes por Palmer**
 - Mario Alberto Julio Wilches.
 - Ana Sofia Meza Herrera.
 - Juan Carlos Narvaez Castaño.
