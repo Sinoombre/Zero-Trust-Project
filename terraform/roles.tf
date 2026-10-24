@@ -87,7 +87,6 @@ resource "aws_iam_role" "lambda_responder" {
       Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
       Action    = "sts:AssumeRole"
-      Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id } }
     }]
   })
 }
@@ -101,28 +100,31 @@ resource "aws_iam_role_policy" "lambda_responder" {
       {
         Sid      = "WriteOwnLogs"
         Effect   = "Allow"
-        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = [local.responder_log_group_arn, "${local.responder_log_group_arn}:*"]
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "${aws_cloudwatch_log_group.log_responder.arn}:*"
       },
       {
-        # Las acciones "Describe*" no admiten restricción por recurso.
+        # Las acciones Describe* no admiten restricción por recurso.
         Sid      = "ReadEc2State"
         Effect   = "Allow"
         Action   = ["ec2:DescribeInstances", "ec2:DescribeSecurityGroups"]
         Resource = "*"
       },
       {
-        # Reemplazar los SG de la instancia por el SG de cuarentena (vacío).
-        Sid      = "IsolateInstance"
-        Effect   = "Allow"
-        Action   = "ec2:ModifyInstanceAttribute"
-        Resource = ["${local.ec2_arn_prefix}:instance/*", "${local.ec2_arn_prefix}:security-group/*"]
+        # Reemplazar los SG de la instancia por el SG vacío.
+        Sid    = "IsolateInstance"
+        Effect = "Allow"
+        Action = "ec2:ModifyInstanceAttribute"
+        Resource = [
+          "arn:aws:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:instance/*",
+          aws_security_group.empty.arn
+        ]
       },
       {
         Sid      = "PublishAlert"
         Effect   = "Allow"
         Action   = "sns:Publish"
-        Resource = local.alerts_topic_arn
+        Resource = aws_sns_topic.security_alerts.arn
       }
     ]
   })
