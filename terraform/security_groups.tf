@@ -77,7 +77,7 @@ resource "aws_security_group" "ssm_endpoints" {
 }
 
 # SG para instancia comprometida
-resource "aws_default_security_group" "empty" {
+resource "aws_security_group" "empty" {
   name        = "${var.project_name}-empty-sg"
   description = "There is no inbound or outbound traffic."
   vpc_id      = aws_vpc.main.id
