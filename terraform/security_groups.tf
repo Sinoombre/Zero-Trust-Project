@@ -27,6 +27,7 @@ resource "aws_security_group" "alb" {
   }
   tags = { Name = "${var.project_name}-alb-sg" }
 }
+
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-app-sg"
   description = "Application ingress only from the ALB. No SSH ingress."
@@ -73,6 +74,14 @@ resource "aws_security_group" "ssm_endpoints" {
     cidr_blocks = [var.vpc_cidr]
   }
   tags = { Name = "${var.project_name}-ssm-endpoints-sg" }
+}
+
+# SG para instancia comprometida
+resource "aws_default_security_group" "empty" {
+  name        = "${var.project_name}-empty-sg"
+  description = "There is no inbound or outbound traffic."
+  vpc_id      = aws_vpc.main.id
+  tags        = { Name = "${var.project_name}-empty-sg" }
 }
 
 # SG por defecto de la VPC sin reglas
