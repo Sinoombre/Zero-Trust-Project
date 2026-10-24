@@ -11,6 +11,11 @@ crash.*.log
 terraform.tfvars
 *.auto.tfvars
 
+*.terraform.lock.hcl
+
+# Paquete de la Lambda 
+terraform/lambda/*.zip
+
 # Secretos
 *.pem
 *.key
