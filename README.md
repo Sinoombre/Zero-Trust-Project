@@ -4,7 +4,7 @@ Infraestructura como código (Terraform) con arquitectura Zero Trust y cumplimie
 
 ## Estructura
 
-```
+```text
 .
 ├── .github/workflows/terraform.yml   # fmt, validate y tflint en cada PR
 ├── docs/                             # runbook, threat model (evidencias/ no se versiona)
@@ -57,7 +57,8 @@ Revisa `enable_nat_gateway`, `enable_ssm_interface_endpoints`,
 
 ## Equipo
 
-**Firmes por Palmer**
+**Firmes por Palmer:**
+
 - Mario Alberto Julio Wilches.
 - Ana Sofia Meza Herrera.
 - Juan Carlos Narvaez Castaño.
