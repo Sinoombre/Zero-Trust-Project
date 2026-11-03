@@ -66,9 +66,9 @@ resource "aws_iam_role_policy" "cloudtrail" {
 
 resource "aws_cloudtrail" "main" {
   # checkov:skip=CKV_AWS_252:El SNS topic aws_sns_topic.security_alerts está definido en incident_response.tf y se referencia correctamente; checkov no resuelve referencias cruzadas entre archivos.
-  count                         = var.enable_security_services ? 1 : 0
-  name                          = "${var.project_name}-trail"
-  s3_bucket_name                = aws_s3_bucket.trail[0].bucket
+  count          = var.enable_security_services ? 1 : 0
+  name           = "${var.project_name}-trail"
+  s3_bucket_name = aws_s3_bucket.trail[0].bucket
   # checkov:skip=CKV_AWS_252:El SNS topic está definido en incident_response.tf; checkov no resuelve referencias cruzadas entre archivos con count.
   include_global_service_events = true
   is_multi_region_trail         = true
