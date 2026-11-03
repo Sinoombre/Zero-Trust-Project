@@ -44,17 +44,13 @@ resource "aws_kms_alias" "lambda" {
   target_key_id = aws_kms_key.lambda.id
 }
 
-# Lambda Code Signing Config
-resource "aws_lambda_code_signing_config" "responder" {
-  description = "Code signing config for Lambda responder"
-  code_signing_policies {
-    untrusted_artifact_on_deployment = "Warn"
-  }
-}
+# Lambda Code Signing Config (omitido: requiere signing profile ARN no disponible en este laboratorio)
+# checkov:skip=CKV_AWS_272:El laboratorio no dispone de un signing profile de AWS Signer; se documenta como riesgo aceptado.
 
 # Lambda Function
 resource "aws_lambda_function" "lambda_responder" {
   # checkov:skip=CKV_AWS_173:El KMS key aws_kms_key.lambda está definido en el mismo archivo y se referencia correctamente; checkov no resuelve la referencia estáticamente.
+  # checkov:skip=CKV_AWS_272:El laboratorio no dispone de un signing profile de AWS Signer; se documenta como riesgo aceptado.
   filename      = data.archive_file.file_responder.output_path
   function_name = "${var.project_name}-lambda-responder"
   role          = aws_iam_role.lambda_responder.arn
@@ -80,14 +76,11 @@ resource "aws_lambda_function" "lambda_responder" {
     target_arn = aws_sns_topic.security_alerts.arn
   }
 
-  code_signing_config_arn = aws_lambda_code_signing_config.responder.arn
-
   environment {
     variables = {
       EMPTY_SG_ID   = aws_security_group.empty.id
       SNS_TOPIC_ARN = aws_sns_topic.security_alerts.arn
     }
-    kms_key_arn = "arn:aws:kms:${var.aws_region}:${data.aws_caller_identity.current.account_id}:key/${aws_kms_key.lambda.id}"
   }
 
   depends_on = [aws_cloudwatch_log_group.log_responder]

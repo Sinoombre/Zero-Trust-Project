@@ -7,20 +7,6 @@ resource "aws_guardduty_detector" "main" {
   count                        = var.enable_security_services ? 1 : 0
   enable                       = true
   finding_publishing_frequency = "FIFTEEN_MINUTES"
-
-  data_source {
-    s3_logs {
-      enable = true
-    }
-    kubernetes {
-      audit_logs {
-        enable = true
-      }
-    }
-    rds_login {
-      enable = true
-    }
-  }
   # checkov:skip=CKV2_AWS_3:Entorno de laboratorio de una sola cuenta; GuardDuty está habilitado en la región configurada (var.aws_region).
 }
 

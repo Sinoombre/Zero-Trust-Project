@@ -106,11 +106,10 @@ resource "aws_wafv2_web_acl" "alb" {
 
 # WAFv2 Logging Configuration hacia el bucket de logs S3
 resource "aws_wafv2_web_acl_logging_configuration" "alb" {
-  web_acl_arn             = aws_wafv2_web_acl.alb.arn
+  resource_arn            = aws_wafv2_web_acl.alb.arn
   log_destination_configs = [aws_s3_bucket.logs.arn]
   redacted_fields {
-    single_header { name = "Authorization" }
-    single_header { name = "Cookie" }
+    single_header { name = "authorization" }
   }
 }
 

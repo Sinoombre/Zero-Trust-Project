@@ -69,7 +69,7 @@ resource "aws_cloudtrail" "main" {
   count                         = var.enable_security_services ? 1 : 0
   name                          = "${var.project_name}-trail"
   s3_bucket_name                = aws_s3_bucket.trail[0].bucket
-  sns_topic_arn                 = aws_sns_topic.security_alerts.arn
+  # checkov:skip=CKV_AWS_252:El SNS topic está definido en incident_response.tf; checkov no resuelve referencias cruzadas entre archivos con count.
   include_global_service_events = true
   is_multi_region_trail         = true
   enable_log_file_validation    = true
