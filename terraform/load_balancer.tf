@@ -7,7 +7,7 @@ resource "aws_acm_certificate" "alb" {
   lifecycle {
     create_before_destroy = true
   }
-  tags              = { Name = "${var.project_name}-alb-cert" }
+  tags = { Name = "${var.project_name}-alb-cert" }
 }
 
 resource "aws_lb" "app" {

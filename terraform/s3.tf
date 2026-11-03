@@ -10,20 +10,20 @@ resource "aws_kms_key" "s3_buckets" {
   enable_key_rotation     = true
   policy = jsonencode({
     Version = "2012-10-17"
-    Id = "key-default-1"
+    Id      = "key-default-1"
     Statement = [
       {
-        Sid = "Enable IAM User Permissions"
+        Sid    = "Enable IAM User Permissions"
         Effect = "Allow"
         Principal = {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
-        Action = "kms:*"
+        Action   = "kms:*"
         Resource = "*"
       }
     ]
   })
-  tags                    = { Name = "${var.project_name}-s3-kms" }
+  tags = { Name = "${var.project_name}-s3-kms" }
 }
 
 resource "aws_kms_alias" "s3_buckets" {
@@ -131,8 +131,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "replication_destination" {
 resource "aws_s3_bucket_notification" "replication_destination" {
   bucket = aws_s3_bucket.replication_destination.id
   topic {
-    topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    topic_arn = aws_sns_topic.security_alerts.arn
+    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
   }
 }
 
@@ -281,8 +281,8 @@ resource "aws_s3_bucket_notification" "config" {
   count  = var.enable_security_services ? 1 : 0
   bucket = aws_s3_bucket.config[0].id
   topic {
-    topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    topic_arn = aws_sns_topic.security_alerts.arn
+    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
   }
 }
 
@@ -373,8 +373,8 @@ resource "aws_s3_bucket_notification" "trail" {
   count  = var.enable_security_services ? 1 : 0
   bucket = aws_s3_bucket.trail[0].id
   topic {
-    topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    topic_arn = aws_sns_topic.security_alerts.arn
+    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
   }
 }
 
