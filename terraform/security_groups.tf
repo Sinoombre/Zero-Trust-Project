@@ -4,6 +4,7 @@ resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
   description = "HTTP ingress to the demo ALB; HTTPS is reserved but no listener is configured."
   vpc_id      = aws_vpc.main.id
+  # checkov:skip=CKV_AWS_260:El ALB es público y requiere ingreso HTTP 0.0.0.0/0:puerto 80 para redirigir a HTTPS.
   ingress {
     description = "Demo HTTP endpoint"
     from_port   = 80
@@ -62,12 +63,14 @@ resource "aws_security_group" "ssm_endpoints" {
   description = "TLS from private VPC resources to Systems Manager endpoints."
   vpc_id      = aws_vpc.main.id
   ingress {
+    description = "TLS 443 from private VPC resources to SSM endpoints"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [var.vpc_cidr]
   }
   egress {
+    description = "All traffic to private VPC CIDR for SSM endpoint reachability"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"

@@ -1,14 +1,12 @@
 name: Checkov
 on:
   pull_request:
-    branches: 
-      - main
+    branches: ['*']
     paths: 
       - terraform/**
   
   push:
-    branches:
-      - main
+    branches: ['*']
     paths:
       - terraform/**
 
