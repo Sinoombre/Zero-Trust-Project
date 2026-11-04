@@ -19,6 +19,8 @@ resource "aws_instance" "app" {
   vpc_security_group_ids      = [aws_security_group.app.id]
   iam_instance_profile        = aws_iam_instance_profile.app.name
   associate_public_ip_address = false
+  monitoring                  = true
+  ebs_optimized               = true
   user_data                   = <<-USERDATA
     #!/bin/bash
     dnf install -y httpd

@@ -7,7 +7,7 @@ resource "aws_config_configuration_recorder" "main" {
   role_arn = aws_iam_role.config[0].arn
   recording_group {
     all_supported                 = true
-    include_global_resource_types = false
+    include_global_resource_types = true
   }
 }
 resource "aws_config_delivery_channel" "main" {
