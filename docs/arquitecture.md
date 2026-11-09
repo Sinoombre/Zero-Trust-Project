@@ -31,7 +31,7 @@ Adicionalmente, se implementan controles de detección y auditoría con GuardDut
 
 ## Diagrama de flujo
 
-```{mermaid}
+```mermaid
 flowchart TD
   subgraph PROVIDER["Provisionamiento"]
     ST["Stack Terraform"]
