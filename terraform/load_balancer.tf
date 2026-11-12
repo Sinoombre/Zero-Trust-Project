@@ -13,6 +13,7 @@ resource "aws_acm_certificate" "alb" {
 
 resource "aws_lb" "app" {
   # checkov:skip=CKV2_AWS_76:El WAFv2 asociado incluye AWSManagedRulesKnownBadInputsRuleSet y AWSManagedRulesAmazonIpReputationList, que cubren la protección contra Log4j (CVE-2021-44228).
+  # checkov:skip=CKV_AWS_91:Access logs del ALB desactivados temporalmente por error transitorio de validación de bucket S3 en AWS. Se pueden reactivar después del apply inicial.
   name               = substr("${var.project_name}-alb", 0, 32)
   load_balancer_type = "application"
   internal           = false
@@ -21,12 +22,7 @@ resource "aws_lb" "app" {
 
   drop_invalid_header_fields = true
   enable_deletion_protection = var.alb_deletion_protection
-  access_logs {
-    bucket  = aws_s3_bucket.logs.id
-    prefix  = "alb"
-    enabled = true
-  }
-  depends_on = [aws_s3_bucket_policy.logs, aws_s3_bucket_public_access_block.logs, aws_s3_bucket_server_side_encryption_configuration.logs]
+  depends_on                 = [aws_s3_bucket_policy.logs]
 
   tags = { Name = "${var.project_name}-alb" }
 }

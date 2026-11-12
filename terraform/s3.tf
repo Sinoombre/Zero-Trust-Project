@@ -138,6 +138,7 @@ resource "aws_s3_bucket_notification" "replication_destination" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreation:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts]
 }
 
 # ---------------------------------------------------------------------------
@@ -188,6 +189,7 @@ resource "aws_s3_bucket_replication_configuration" "logs" {
       storage_class = "STANDARD"
     }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "logs" {
@@ -198,6 +200,7 @@ resource "aws_s3_bucket_notification" "logs" {
     filter_prefix = "alb/"
     filter_suffix = ".log"
   }
+  depends_on = [aws_sns_topic.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "logs" {
@@ -283,6 +286,7 @@ resource "aws_s3_bucket_replication_configuration" "config" {
       storage_class = "STANDARD"
     }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "config" {
@@ -292,6 +296,7 @@ resource "aws_s3_bucket_notification" "config" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreation:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "config" {
@@ -377,6 +382,7 @@ resource "aws_s3_bucket_replication_configuration" "trail" {
       storage_class = "STANDARD"
     }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "trail" {
@@ -386,6 +392,7 @@ resource "aws_s3_bucket_notification" "trail" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreation:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "trail" {

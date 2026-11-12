@@ -47,7 +47,7 @@ resource "aws_flow_log" "s3" {
   traffic_type         = "ALL"
   log_destination_type = "s3"
   log_destination      = aws_s3_bucket.logs.arn
-  depends_on           = [aws_s3_bucket_policy.logs, aws_s3_bucket_public_access_block.logs]
+  depends_on           = [aws_s3_bucket_policy.logs, aws_s3_bucket_public_access_block.logs, aws_s3_bucket_server_side_encryption_configuration.logs]
 }
 
 resource "aws_cloudwatch_log_group" "flow" {

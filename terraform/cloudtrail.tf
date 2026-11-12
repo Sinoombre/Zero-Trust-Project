@@ -49,7 +49,7 @@ resource "aws_cloudwatch_log_group" "cloudtrail" {
   retention_in_days = 365
   kms_key_id        = aws_kms_key.cloudtrail[0].id
   tags              = { Name = "${var.project_name}-cloudtrail-cw-log-group" }
-  depends_on        = [aws_kms_key.cloudtrail]
+  depends_on        = [aws_kms_key.cloudtrail, aws_kms_alias.cloudtrail]
 }
 
 resource "aws_iam_role" "cloudtrail" {
@@ -90,5 +90,5 @@ resource "aws_cloudtrail" "main" {
   kms_key_id                    = aws_kms_key.cloudtrail[0].id
   cloud_watch_logs_group_arn    = aws_cloudwatch_log_group.cloudtrail[0].arn
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail[0].arn
-  depends_on                    = [aws_s3_bucket_policy.trail]
+  depends_on                    = [aws_s3_bucket_policy.trail, aws_cloudwatch_log_group.cloudtrail]
 }

@@ -92,6 +92,8 @@ resource "aws_iam_role" "lambda_responder" {
 }
 
 resource "aws_iam_role_policy" "lambda_responder" {
+  # checkov:skip=CKV_AWS_355:Los permisos EC2 para Lambda en VPC (CreateNetworkInterface, etc.) requieren Resource="*" ya que no se pueden restringir a ENIs específicos de antemano.
+  # checkov:skip=CKV_AWS_290:Los permisos de escritura EC2 para Lambda en VPC son necesarios para crear/eliminar interfaces de red; no admiten restricción por recurso.
   name = "isolate-instance-and-notify"
   role = aws_iam_role.lambda_responder.id
   policy = jsonencode({
@@ -107,7 +109,20 @@ resource "aws_iam_role_policy" "lambda_responder" {
         # Las acciones Describe* no admiten restricción por recurso.
         Sid      = "ReadEc2State"
         Effect   = "Allow"
-        Action   = ["ec2:DescribeInstances", "ec2:DescribeSecurityGroups"]
+        Action   = ["ec2:DescribeInstances", "ec2:DescribeSecurityGroups", "ec2:DescribeNetworkInterfaces"]
+        Resource = "*"
+      },
+      {
+        # Permisos necesarios para Lambda en VPC (crear/eliminar ENI).
+        Sid    = "LambdaVpcNetworkInterface"
+        Effect = "Allow"
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface",
+          "ec2:AssignPrivateIpAddresses",
+          "ec2:UnassignPrivateIpAddresses"
+        ]
         Resource = "*"
       },
       {
