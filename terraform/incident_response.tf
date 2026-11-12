@@ -35,8 +35,8 @@ resource "aws_kms_key" "lambda" {
         Resource = "*"
       },
       {
-        Sid    = "Allow CloudWatch Logs to use the key"
-        Effect = "Allow"
+        Sid       = "Allow CloudWatch Logs to use the key"
+        Effect    = "Allow"
         Principal = { Service = "logs.amazonaws.com" }
         Action = [
           "kms:Encrypt",
