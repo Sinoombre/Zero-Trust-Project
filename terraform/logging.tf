@@ -18,6 +18,19 @@ resource "aws_kms_key" "cloudwatch_logs" {
         }
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs to use the key"
+        Effect = "Allow"
+        Principal = { Service = "logs.amazonaws.com" }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -33,14 +46,15 @@ resource "aws_flow_log" "s3" {
   vpc_id               = aws_vpc.main.id
   traffic_type         = "ALL"
   log_destination_type = "s3"
-  log_destination      = "${aws_s3_bucket.logs.arn}/flow-logs/"
-  depends_on           = [aws_s3_bucket_policy.logs]
+  log_destination      = aws_s3_bucket.logs.arn
+  depends_on           = [aws_s3_bucket_policy.logs, aws_s3_bucket_public_access_block.logs]
 }
 
 resource "aws_cloudwatch_log_group" "flow" {
   name              = "/${var.project_name}/vpc-flow-logs"
   retention_in_days = 365
   kms_key_id        = aws_kms_key.cloudwatch_logs.arn
+  depends_on        = [aws_kms_key.cloudwatch_logs]
 }
 
 resource "aws_flow_log" "cloudwatch" {

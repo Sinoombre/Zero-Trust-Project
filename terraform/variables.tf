@@ -81,6 +81,12 @@ variable "alb_deletion_protection" {
   default     = true
 }
 
+variable "create_acm_certificate" {
+  description = "Crear certificado ACM para el ALB. Requiere validación DNS (Route53). Desactivar en laboratorio sin dominio propio."
+  type        = bool
+  default     = false
+}
+
 variable "enable_ec2_interface_endpoint" {
   description = "Crea el endpoint de interfaz del servicio EC2 (control EC2.10). Genera cargos por hora y por AZ."
   type        = bool

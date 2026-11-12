@@ -86,8 +86,12 @@ resource "aws_iam_role_policy" "s3_replication" {
 resource "aws_s3_bucket" "replication_destination" {
   bucket        = "${var.project_name}-replication-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "replication_destination" {
+  bucket = aws_s3_bucket.replication_destination.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -132,7 +136,7 @@ resource "aws_s3_bucket_notification" "replication_destination" {
   bucket = aws_s3_bucket.replication_destination.id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreation:*"]
   }
 }
 
@@ -145,8 +149,12 @@ data "aws_elb_service_account" "main" {}
 resource "aws_s3_bucket" "logs" {
   bucket        = "${var.project_name}-logs-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -179,9 +187,6 @@ resource "aws_s3_bucket_replication_configuration" "logs" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
 }
 
@@ -189,7 +194,7 @@ resource "aws_s3_bucket_notification" "logs" {
   bucket = aws_s3_bucket.logs.id
   topic {
     topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events        = ["s3:ObjectCreation:*"]
     filter_prefix = "alb/"
     filter_suffix = ".log"
   }
@@ -235,10 +240,16 @@ resource "aws_s3_bucket" "config" {
   count         = var.enable_security_services ? 1 : 0
   bucket        = "${var.project_name}-config-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "config" {
+  count  = var.enable_security_services ? 1 : 0
+  bucket = aws_s3_bucket.config[0].id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
+
 resource "aws_s3_bucket_public_access_block" "config" {
   count                   = var.enable_security_services ? 1 : 0
   bucket                  = aws_s3_bucket.config[0].id
@@ -271,9 +282,6 @@ resource "aws_s3_bucket_replication_configuration" "config" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
 }
 
@@ -282,7 +290,7 @@ resource "aws_s3_bucket_notification" "config" {
   bucket = aws_s3_bucket.config[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreation:*"]
   }
 }
 
@@ -326,8 +334,13 @@ resource "aws_s3_bucket" "trail" {
   count         = var.enable_security_services ? 1 : 0
   bucket        = "${var.project_name}-trail-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "trail" {
+  count  = var.enable_security_services ? 1 : 0
+  bucket = aws_s3_bucket.trail[0].id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -363,9 +376,6 @@ resource "aws_s3_bucket_replication_configuration" "trail" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
 }
 
@@ -374,7 +384,7 @@ resource "aws_s3_bucket_notification" "trail" {
   bucket = aws_s3_bucket.trail[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreation:*"]
   }
 }
 

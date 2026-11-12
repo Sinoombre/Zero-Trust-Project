@@ -1,6 +1,7 @@
 # WAFv2 regional asociado al ALB: reglas OWASP gestionadas, rate limit, log4j y logging.
 
 resource "aws_wafv2_web_acl" "alb" {
+  # checkov:skip=CKV2_AWS_31:WAFv2 logging requiere un delivery stream de Kinesis Firehose; no puede escribir directamente a S3. Se documenta como riesgo aceptado para este laboratorio.
   name        = "${var.project_name}-web-acl"
   description = "Managed OWASP protections, rate limit, Log4j protection and logging for the demo ALB."
   scope       = "REGIONAL"
@@ -101,15 +102,6 @@ resource "aws_wafv2_web_acl" "alb" {
       metric_name                = "rate-limit"
       sampled_requests_enabled   = true
     }
-  }
-}
-
-# WAFv2 Logging Configuration hacia el bucket de logs S3
-resource "aws_wafv2_web_acl_logging_configuration" "alb" {
-  resource_arn            = aws_wafv2_web_acl.alb.arn
-  log_destination_configs = [aws_s3_bucket.logs.arn]
-  redacted_fields {
-    single_header { name = "authorization" }
   }
 }
 

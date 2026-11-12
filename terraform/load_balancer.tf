@@ -2,6 +2,7 @@
 
 # ACM certificate for HTTPS listener (lab domain; validar con Route53 en cuenta real).
 resource "aws_acm_certificate" "alb" {
+  count             = var.create_acm_certificate ? 1 : 0
   domain_name       = "${var.project_name}.example.com"
   validation_method = "DNS"
   lifecycle {
@@ -25,7 +26,7 @@ resource "aws_lb" "app" {
     prefix  = "alb"
     enabled = true
   }
-  depends_on = [aws_s3_bucket_policy.logs]
+  depends_on = [aws_s3_bucket_policy.logs, aws_s3_bucket_public_access_block.logs, aws_s3_bucket_server_side_encryption_configuration.logs]
 
   tags = { Name = "${var.project_name}-alb" }
 }
@@ -62,15 +63,17 @@ resource "aws_lb_listener" "http_redirect" {
 
 # HTTPS listener (puerto 443) con TLS 1.2 y certificado ACM
 resource "aws_lb_listener" "https" {
+  count             = var.create_acm_certificate ? 1 : 0
   load_balancer_arn = aws_lb.app.arn
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.alb.arn
+  certificate_arn   = aws_acm_certificate.alb[0].arn
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
   }
+  depends_on = [aws_acm_certificate.alb]
 }
 
 resource "aws_lb_target_group_attachment" "app" {

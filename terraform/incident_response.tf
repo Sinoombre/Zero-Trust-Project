@@ -33,6 +33,19 @@ resource "aws_kms_key" "lambda" {
         }
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs to use the key"
+        Effect = "Allow"
+        Principal = { Service = "logs.amazonaws.com" }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -116,4 +129,5 @@ resource "aws_cloudwatch_log_group" "log_responder" {
   name              = "/aws/lambda/${var.project_name}-lambda-responder"
   retention_in_days = 365
   kms_key_id        = aws_kms_key.lambda.arn
+  depends_on        = [aws_kms_key.lambda]
 }

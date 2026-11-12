@@ -18,6 +18,19 @@ resource "aws_kms_key" "cloudtrail" {
         }
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid    = "Allow CloudWatch Logs to use the key"
+        Effect = "Allow"
+        Principal = { Service = "logs.amazonaws.com" }
+        Action = [
+          "kms:Encrypt",
+          "kms:Decrypt",
+          "kms:ReEncrypt*",
+          "kms:GenerateDataKey*",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
       }
     ]
   })
@@ -36,6 +49,7 @@ resource "aws_cloudwatch_log_group" "cloudtrail" {
   retention_in_days = 365
   kms_key_id        = aws_kms_key.cloudtrail[0].id
   tags              = { Name = "${var.project_name}-cloudtrail-cw-log-group" }
+  depends_on        = [aws_kms_key.cloudtrail]
 }
 
 resource "aws_iam_role" "cloudtrail" {
