@@ -74,7 +74,8 @@ resource "aws_lambda_function" "lambda_responder" {
   runtime = "python3.13"
   timeout = 30 # It has to run in 30 seconds, change the default of 3
 
-  reserved_concurrent_executions = 5
+  # Valor mínimo permitido por la cuenta (UnreservedConcurrentExecution >= 10).
+  reserved_concurrent_executions = 10
 
   tracing_config {
     mode = "Active"

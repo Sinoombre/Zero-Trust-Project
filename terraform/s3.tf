@@ -136,7 +136,7 @@ resource "aws_s3_bucket_notification" "replication_destination" {
   bucket = aws_s3_bucket.replication_destination.id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
   depends_on = [aws_sns_topic.security_alerts]
 }
@@ -196,7 +196,7 @@ resource "aws_s3_bucket_notification" "logs" {
   bucket = aws_s3_bucket.logs.id
   topic {
     topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ObjectCreation:*"]
+    events        = ["s3:ObjectCreated:*"]
     filter_prefix = "alb/"
     filter_suffix = ".log"
   }
@@ -211,7 +211,7 @@ resource "aws_s3_bucket_policy" "logs" {
       { Sid = "DenyInsecureTransport", Effect = "Deny", Principal = "*", Action = "s3:*", Resource = [aws_s3_bucket.logs.arn, "${aws_s3_bucket.logs.arn}/*"], Condition = { Bool = { "aws:SecureTransport" = "false" } } },
       { Sid = "AlbAccessLogs", Effect = "Allow", Principal = { AWS = data.aws_elb_service_account.main.arn }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/alb/AWSLogs/${data.aws_caller_identity.current.account_id}/*" },
       { Sid = "FlowLogsAclCheck", Effect = "Allow", Principal = { Service = "delivery.logs.amazonaws.com" }, Action = "s3:GetBucketAcl", Resource = aws_s3_bucket.logs.arn },
-      { Sid = "FlowLogsWrite", Effect = "Allow", Principal = { Service = "delivery.logs.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/flow-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control", "aws:SourceAccount" = data.aws_caller_identity.current.account_id } } },
+      { Sid = "FlowLogsWrite", Effect = "Allow", Principal = { Service = "delivery.logs.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control", "aws:SourceAccount" = data.aws_caller_identity.current.account_id } } },
       { Sid = "S3ServerAccessLogs", Effect = "Allow", Principal = { Service = "logging.s3.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/s3-access/*", Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id } } }
     ]
   })
@@ -294,7 +294,7 @@ resource "aws_s3_bucket_notification" "config" {
   bucket = aws_s3_bucket.config[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
   depends_on = [aws_sns_topic.security_alerts]
 }
@@ -390,7 +390,7 @@ resource "aws_s3_bucket_notification" "trail" {
   bucket = aws_s3_bucket.trail[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
   depends_on = [aws_sns_topic.security_alerts]
 }

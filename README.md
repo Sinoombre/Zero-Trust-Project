@@ -76,7 +76,7 @@ terraform apply
 **Variables opcionales importantes:**
 
 | Variable | Default | Descripción |
-|----------|---------|-------------|
+| ---------- | --------- | ------------- |
 | `create_acm_certificate` | `false` | Crear certificado ACM para el ALB (requiere validación DNS vía Route53). Activar solo si se tiene un dominio propio configurado. |
 | `enable_security_services` | `true` | Habilita CloudTrail, AWS Config, GuardDuty, Security Hub (pueden generar cargos). |
 | `enable_nat_gateway` | `false` | Crear NAT Gateway (costo por hora y datos). |

@@ -43,13 +43,21 @@ resource "aws_kms_alias" "cloudtrail" {
   target_key_id = aws_kms_key.cloudtrail[0].id
 }
 
+# Espera a que el KMS key de CloudTrail se propague regionalmente para evitar
+# "The specified KMS Key Id could not be found" (consistencia eventual de KMS).
+resource "time_sleep" "wait_for_cloudtrail_kms" {
+  count        = var.enable_security_services ? 1 : 0
+  depends_on   = [aws_kms_key.cloudtrail, aws_kms_alias.cloudtrail]
+  create_duration = "10s"
+}
+
 resource "aws_cloudwatch_log_group" "cloudtrail" {
   count             = var.enable_security_services ? 1 : 0
   name              = "/aws/cloudtrail/${var.project_name}-trail"
   retention_in_days = 365
   kms_key_id        = aws_kms_key.cloudtrail[0].id
   tags              = { Name = "${var.project_name}-cloudtrail-cw-log-group" }
-  depends_on        = [aws_kms_key.cloudtrail, aws_kms_alias.cloudtrail]
+  depends_on        = [time_sleep.wait_for_cloudtrail_kms]
 }
 
 resource "aws_iam_role" "cloudtrail" {
