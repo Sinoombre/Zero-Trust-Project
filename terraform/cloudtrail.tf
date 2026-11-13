@@ -46,8 +46,8 @@ resource "aws_kms_alias" "cloudtrail" {
 # Espera a que el KMS key de CloudTrail se propague regionalmente para evitar
 # "The specified KMS Key Id could not be found" (consistencia eventual de KMS).
 resource "time_sleep" "wait_for_cloudtrail_kms" {
-  count        = var.enable_security_services ? 1 : 0
-  depends_on   = [aws_kms_key.cloudtrail, aws_kms_alias.cloudtrail]
+  count           = var.enable_security_services ? 1 : 0
+  depends_on      = [aws_kms_key.cloudtrail, aws_kms_alias.cloudtrail]
   create_duration = "10s"
 }
 
