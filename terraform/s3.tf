@@ -242,7 +242,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 resource "aws_s3_bucket" "config" {
   count         = var.enable_security_services ? 1 : 0
   bucket        = "${var.project_name}-config-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
-  force_destroy = false
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "config" {
