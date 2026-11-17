@@ -10,8 +10,8 @@ Ejecutando `checkov -d terraform --compact`:
 
 | Métrica | Cantidad |
 | ------- | -------- |
-| PASSED | 240 |
-| SKIPPED | 11 |
+| PASSED | 239 |
+| SKIPPED | 14 |
 | FAILED | 0 |
 
 Inicialmente había 38 checks fallidos distribuidos en 11 archivos de Terraform. Todos fueron corregidos o documentados con `checkov:skip` (supresiones inline con justificación técnica). No se utilizó un archivo `.checkovignore`.
@@ -31,6 +31,11 @@ Inicialmente había 38 checks fallidos distribuidos en 11 archivos de Terraform.
 | CKV_AWS_91 | `aws_lb.app` | `load_balancer.tf` | Access logs del ALB desactivados temporalmente por error transitorio de validación de bucket S3 en AWS ("S3Bucket validation transient issue"). Se pueden reactivar después del apply inicial agregando el bloque `access_logs` de vuelta. |
 | CKV_AWS_355 | `aws_iam_role_policy.lambda_responder` | `roles.tf` | Los permisos EC2 para Lambda en VPC (CreateNetworkInterface, etc.) requieren Resource="*" ya que no se pueden restringir a ENIs específicos de antemano. |
 | CKV_AWS_290 | `aws_iam_role_policy.lambda_responder` | `roles.tf` | Los permisos de escritura EC2 para Lambda en VPC son necesarios para crear/eliminar interfaces de red; no admiten restricción por recurso. |
+| CKV2_AWS_6 | `aws_s3_bucket.logs` | `s3.tf` | El bucket de logs requiere recibir VPC Flow Logs, ALB access logs y S3 server access logs; con `block_public_policy=true` el servicio `delivery.logs.amazonaws.com` no puede escribir objetos ("undeliverable"). Se deja `block_public_policy=false` y `restrict_public_buckets=false` solo para este bucket; el resto de buckets del proyecto mantienen todos los bloques públicos habilitados. Riesgo aceptado y documentado. |
+| CKV_AWS_54 | `aws_s3_bucket_public_access_block.logs` | `s3.tf` | El bucket de logs requiere recibir entregas de `delivery.logs.amazonaws.com` (VPC Flow Logs); `block_public_policy=true` impide la entrega ("undeliverable"). Riesgo aceptado y documentado. |
+| CKV_AWS_56 | `aws_s3_bucket_public_access_block.logs` | `s3.tf` | Misma justificación que CKV_AWS_54; `restrict_public_buckets=false` es necesario para permitir la entrega de flow logs. Riesgo aceptado y documentado. |
+| CKV_AWS_93 | `aws_s3_bucket_policy.flow_logs_delivery` | `s3.tf` | El bucket de logs permite escritura a `delivery.logs.amazonaws.com` para VPC Flow Logs; se restringe por `aws:SourceAccount` y `s3:x-amz-acl`. Riesgo aceptado y documentado. |
+| CKV2_AWS_6 | `aws_s3_account_public_access_block.account` | `account_hardening.tf` | El bloqueo público a nivel de cuenta permite políticas de bucket para que `delivery.logs.amazonaws.com` escriba VPC Flow Logs en el bucket de logs. Se mantiene `block_public_acls=true` e `ignore_public_acls=true` para seguir bloqueando ACLs públicas. Riesgo aceptado y documentado. |
 
 ## Estructura
 
