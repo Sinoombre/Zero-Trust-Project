@@ -105,6 +105,7 @@ resource "aws_kms_alias" "lambda" {
 resource "aws_lambda_function" "lambda_responder" {
   # checkov:skip=CKV_AWS_173:El KMS key aws_kms_key.lambda está definido en el mismo archivo y se referencia correctamente; checkov no resuelve la referencia estáticamente.
   # checkov:skip=CKV_AWS_272:El laboratorio no dispone de un signing profile de AWS Signer; se documenta como riesgo aceptado.
+  # checkov:skip=CKV_AWS_115:La cuota de concurrencia de esta cuenta no permite reservar concurrencia sin bajar del mínimo de 10 ejecuciones sin reservar; se mantiene la Lambda habilitada con concurrencia compartida.
   filename      = data.archive_file.file_responder.output_path
   function_name = "${var.project_name}-lambda-responder"
   role          = aws_iam_role.lambda_responder.arn
