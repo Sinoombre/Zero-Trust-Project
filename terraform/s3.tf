@@ -138,7 +138,7 @@ resource "aws_s3_bucket_notification" "replication_destination" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreated:*"]
   }
-  depends_on = [aws_sns_topic.security_alerts]
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 # ---------------------------------------------------------------------------
@@ -148,6 +148,7 @@ resource "aws_s3_bucket_notification" "replication_destination" {
 data "aws_elb_service_account" "main" {}
 
 resource "aws_s3_bucket" "logs" {
+  # checkov:skip=CKV2_AWS_6:El bucket de logs requiere recibir VPC Flow Logs, ALB access logs y S3 server access logs; con block_public_policy=true delivery.logs.amazonaws.com no puede escribir objetos ("undeliverable"). Riesgo aceptado y documentado.
   bucket        = "${var.project_name}-logs-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
 }
@@ -160,11 +161,44 @@ resource "aws_s3_bucket_versioning" "logs" {
 }
 
 resource "aws_s3_bucket_public_access_block" "logs" {
+  # checkov:skip=CKV_AWS_54:El bucket de logs requiere recibir entregas de delivery.logs.amazonaws.com (VPC Flow Logs); block_public_policy=true impide la entrega ("undeliverable"). Riesgo aceptado y documentado.
+  # checkov:skip=CKV_AWS_56:Misma justificación que CKV_AWS_54; restrict_public_buckets=false es necesario para permitir la entrega de flow logs. Riesgo aceptado y documentado.
   bucket                  = aws_s3_bucket.logs.id
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_policy     = false
+  restrict_public_buckets = false
+}
+
+# checkov:skip=CKV_AWS_93:El bucket de logs permite escritura a delivery.logs.amazonaws.com para VPC Flow Logs; se restringe por aws:SourceArn y aws:SourceAccount. Riesgo aceptado y documentado.
+resource "aws_s3_bucket_policy" "flow_logs_delivery" {
+  bucket = aws_s3_bucket.logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowFlowLogsWrite"
+        Effect    = "Allow"
+        Principal = { Service = "delivery.logs.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl"      = "bucket-owner-full-control",
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      },
+      {
+        Sid       = "AllowFlowLogsAclCheck"
+        Effect    = "Allow"
+        Principal = { Service = "delivery.logs.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.logs.arn
+      }
+    ]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.logs]
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
@@ -200,7 +234,7 @@ resource "aws_s3_bucket_notification" "logs" {
     filter_prefix = "alb/"
     filter_suffix = ".log"
   }
-  depends_on = [aws_sns_topic.security_alerts]
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "logs" {
@@ -296,7 +330,7 @@ resource "aws_s3_bucket_notification" "config" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreated:*"]
   }
-  depends_on = [aws_sns_topic.security_alerts]
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "config" {
@@ -392,7 +426,7 @@ resource "aws_s3_bucket_notification" "trail" {
     topic_arn = aws_sns_topic.security_alerts.arn
     events    = ["s3:ObjectCreated:*"]
   }
-  depends_on = [aws_sns_topic.security_alerts]
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "trail" {

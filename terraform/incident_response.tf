@@ -4,6 +4,47 @@ resource "aws_sns_topic" "security_alerts" {
   kms_master_key_id = "alias/aws/sns" # Habilita el cifrado en reposo
 }
 
+# Permite que S3 envíe notificaciones de eventos de bucket a este topic SNS.
+# Requerido por aws_s3_bucket_notification en s3.tf, de lo contrario AWS rechaza
+# la configuración con "InvalidArgument: Unable to validate the following destination configurations".
+# Los buckets config y trail son opcionales (controlados por enable_security_services),
+# por lo que se usan try()/compact() para no fallar cuando no existen.
+locals {
+  sns_notification_source_arns = compact([
+    aws_s3_bucket.replication_destination.arn,
+    aws_s3_bucket.logs.arn,
+    try(aws_s3_bucket.config[0].arn, ""),
+    try(aws_s3_bucket.trail[0].arn, ""),
+  ])
+}
+
+resource "aws_sns_topic_policy" "security_alerts" {
+  arn = aws_sns_topic.security_alerts.arn
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowS3BucketNotifications"
+        Effect    = "Allow"
+        Principal = { Service = "s3.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.security_alerts.arn
+        Condition = {
+          ArnLike = {
+            "aws:SourceArn" = local.sns_notification_source_arns
+          }
+        }
+      }
+    ]
+  })
+  depends_on = [
+    aws_s3_bucket.replication_destination,
+    aws_s3_bucket.logs,
+    aws_s3_bucket.config,
+    aws_s3_bucket.trail,
+  ]
+}
+
 resource "aws_sns_topic_subscription" "email_messages" {
   topic_arn = aws_sns_topic.security_alerts.arn
   protocol  = "email"
