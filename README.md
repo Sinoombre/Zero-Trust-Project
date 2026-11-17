@@ -10,13 +10,8 @@ Ejecutando `checkov -d terraform --compact`:
 
 | Métrica | Cantidad |
 | ------- | -------- |
-<<<<<<< HEAD
-| PASSED | 239 |
-| SKIPPED | 14 |
-=======
 | PASSED | 240 |
 | SKIPPED | 12 |
->>>>>>> 57ff18fdaa16b0b14f8b2d70b32ad73676ef6c4a
 | FAILED | 0 |
 
 Inicialmente había 38 checks fallidos distribuidos en 11 archivos de Terraform. Todos fueron corregidos o documentados con `checkov:skip` (supresiones inline con justificación técnica). No se utilizó un archivo `.checkovignore`.
