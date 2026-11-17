@@ -14,7 +14,7 @@ resource "aws_config_delivery_channel" "main" {
   count          = var.enable_security_services ? 1 : 0
   name           = "${var.project_name}-delivery"
   s3_bucket_name = aws_s3_bucket.config[0].bucket
-  depends_on     = [aws_s3_bucket_policy.config]
+  depends_on     = [aws_s3_bucket_policy.config, aws_config_configuration_recorder.main]
 }
 
 resource "aws_config_configuration_recorder_status" "main" {

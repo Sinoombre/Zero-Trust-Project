@@ -10,8 +10,13 @@ Ejecutando `checkov -d terraform --compact`:
 
 | Métrica | Cantidad |
 | ------- | -------- |
+<<<<<<< HEAD
 | PASSED | 239 |
 | SKIPPED | 14 |
+=======
+| PASSED | 240 |
+| SKIPPED | 12 |
+>>>>>>> 57ff18fdaa16b0b14f8b2d70b32ad73676ef6c4a
 | FAILED | 0 |
 
 Inicialmente había 38 checks fallidos distribuidos en 11 archivos de Terraform. Todos fueron corregidos o documentados con `checkov:skip` (supresiones inline con justificación técnica). No se utilizó un archivo `.checkovignore`.
@@ -21,6 +26,7 @@ Inicialmente había 38 checks fallidos distribuidos en 11 archivos de Terraform.
 | Check ID | Recurso | Archivo | Motivo |
 | ---------- | --------- | -------- | ------ |
 | CKV_AWS_252 | `aws_cloudtrail.main[0]` | `cloudtrail.tf` | `sns_topic_arn` se eliminó porque con `count` su valor es computed y no resoluble estáticamente por Checkov. El topic SNS `aws_sns_topic.security_alerts` está definido en `incident_response.tf`; Checkov no resuelve referencias cruzadas entre archivos. |
+| CKV_AWS_115 | `aws_lambda_function.lambda_responder` | `incident_response.tf` | No se configura `reserved_concurrent_executions`: la cuota disponible de la cuenta no permite reservar 10 ejecuciones y conservar el mínimo de 10 ejecuciones sin reservar que exige Lambda. Se mantiene la función operativa usando concurrencia compartida; revisar la excepción tras aumentar la cuota. |
 | CKV_AWS_272 | `aws_lambda_function.lambda_responder` | `incident_response.tf` | Se eliminó `aws_lambda_code_signing_config` porque requiere un signing profile de AWS Signer no disponible en este laboratorio de una sola cuenta. El Lambda no tiene code signing configurado. |
 | CKV_AWS_173 | `aws_lambda_function.lambda_responder` | `incident_response.tf` | Se eliminó `kms_key_arn` del bloque `environment` porque no es soportado por esta versión del provider AWS. El KMS key existe pero no se puede asociar estáticamente al recurso. |
 | CKV_AWS_394 | `aws_availability_zones.available` | `main.tf` | Entorno de laboratorio de una sola cuenta; las zonas se asignan dinámicamente por AWS y no se conocen de antemano. `zone_names` no es un argumento de entrada válido en `aws_availability_zones`. |

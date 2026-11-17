@@ -31,6 +31,45 @@ resource "aws_kms_key" "cloudtrail" {
           "kms:DescribeKey"
         ]
         Resource = "*"
+      },
+      {
+        Sid       = "AllowCloudTrailToEncryptLogs"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "kms:GenerateDataKey*"
+        Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail"
+          }
+          StringLike = {
+            "kms:EncryptionContext:aws:cloudtrail:arn" = "arn:aws:cloudtrail:*:${data.aws_caller_identity.current.account_id}:trail/*"
+          }
+        }
+      },
+      {
+        Sid       = "AllowCloudTrailToDecryptLogs"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "kms:Decrypt"
+        Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail"
+          }
+        }
+      },
+      {
+        Sid       = "AllowCloudTrailToDescribeKey"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = "kms:DescribeKey"
+        Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail"
+          }
+        }
       }
     ]
   })
@@ -55,7 +94,7 @@ resource "aws_cloudwatch_log_group" "cloudtrail" {
   count             = var.enable_security_services ? 1 : 0
   name              = "/aws/cloudtrail/${var.project_name}-trail"
   retention_in_days = 365
-  kms_key_id        = aws_kms_key.cloudtrail[0].id
+  kms_key_id        = aws_kms_key.cloudtrail[0].arn
   tags              = { Name = "${var.project_name}-cloudtrail-cw-log-group" }
   depends_on        = [time_sleep.wait_for_cloudtrail_kms]
 }
@@ -81,7 +120,7 @@ resource "aws_iam_role_policy" "cloudtrail" {
         "logs:CreateLogStream",
         "logs:PutLogEvents"
       ]
-      Resource = aws_cloudwatch_log_group.cloudtrail[0].arn
+      Resource = "${aws_cloudwatch_log_group.cloudtrail[0].arn}:log-stream:*"
     }]
   })
 }
@@ -96,7 +135,12 @@ resource "aws_cloudtrail" "main" {
   is_multi_region_trail         = true
   enable_log_file_validation    = true
   kms_key_id                    = aws_kms_key.cloudtrail[0].arn
-  cloud_watch_logs_group_arn    = aws_cloudwatch_log_group.cloudtrail[0].arn
+  cloud_watch_logs_group_arn    = "${aws_cloudwatch_log_group.cloudtrail[0].arn}:*"
   cloud_watch_logs_role_arn     = aws_iam_role.cloudtrail[0].arn
-  depends_on                    = [aws_s3_bucket_policy.trail, aws_cloudwatch_log_group.cloudtrail]
+  depends_on = [
+    aws_s3_bucket_policy.trail,
+    aws_s3_bucket_server_side_encryption_configuration.trail,
+    aws_iam_role_policy.cloudtrail,
+    aws_cloudwatch_log_group.cloudtrail,
+  ]
 }
