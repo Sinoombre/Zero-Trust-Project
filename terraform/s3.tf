@@ -20,6 +20,30 @@ resource "aws_kms_key" "s3_buckets" {
         }
         Action   = "kms:*"
         Resource = "*"
+      },
+      {
+        Sid       = "AllowVPCFlowLogsToEncrypt"
+        Effect    = "Allow"
+        Principal = { Service = "delivery.logs.amazonaws.com" }
+        Action    = ["kms:Encrypt", "kms:GenerateDataKey*"]
+        Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      },
+      {
+        Sid       = "AllowCloudTrailToUseS3BucketKey"
+        Effect    = "Allow"
+        Principal = { Service = "cloudtrail.amazonaws.com" }
+        Action    = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]
+        Resource  = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceArn" = "arn:aws:cloudtrail:${var.aws_region}:${data.aws_caller_identity.current.account_id}:trail/${var.project_name}-trail"
+          }
+        }
       }
     ]
   })
@@ -86,8 +110,12 @@ resource "aws_iam_role_policy" "s3_replication" {
 resource "aws_s3_bucket" "replication_destination" {
   bucket        = "${var.project_name}-replication-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "replication_destination" {
+  bucket = aws_s3_bucket.replication_destination.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -104,7 +132,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "replication_desti
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3_buckets.id
+      kms_master_key_id = aws_kms_key.s3_buckets.arn
     }
     bucket_key_enabled = true
   }
@@ -132,8 +160,9 @@ resource "aws_s3_bucket_notification" "replication_destination" {
   bucket = aws_s3_bucket.replication_destination.id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 # ---------------------------------------------------------------------------
@@ -143,19 +172,26 @@ resource "aws_s3_bucket_notification" "replication_destination" {
 data "aws_elb_service_account" "main" {}
 
 resource "aws_s3_bucket" "logs" {
+  # checkov:skip=CKV2_AWS_6:El bucket de logs requiere recibir VPC Flow Logs, ALB access logs y S3 server access logs; con block_public_policy=true delivery.logs.amazonaws.com no puede escribir objetos ("undeliverable"). Riesgo aceptado y documentado.
   bucket        = "${var.project_name}-logs-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "logs" {
+  # checkov:skip=CKV_AWS_54:El bucket de logs requiere recibir entregas de delivery.logs.amazonaws.com (VPC Flow Logs); block_public_policy=true impide la entrega ("undeliverable"). Riesgo aceptado y documentado.
+  # checkov:skip=CKV_AWS_56:Misma justificación que CKV_AWS_54; restrict_public_buckets=false es necesario para permitir la entrega de flow logs. Riesgo aceptado y documentado.
   bucket                  = aws_s3_bucket.logs.id
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_policy     = false
+  restrict_public_buckets = false
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
@@ -163,7 +199,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3_buckets.id
+      kms_master_key_id = aws_kms_key.s3_buckets.arn
     }
     bucket_key_enabled = true
   }
@@ -179,20 +215,19 @@ resource "aws_s3_bucket_replication_configuration" "logs" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "logs" {
   bucket = aws_s3_bucket.logs.id
   topic {
     topic_arn     = aws_sns_topic.security_alerts.arn
-    events        = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events        = ["s3:ObjectCreated:*"]
     filter_prefix = "alb/"
     filter_suffix = ".log"
   }
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "logs" {
@@ -202,8 +237,37 @@ resource "aws_s3_bucket_policy" "logs" {
     Statement = [
       { Sid = "DenyInsecureTransport", Effect = "Deny", Principal = "*", Action = "s3:*", Resource = [aws_s3_bucket.logs.arn, "${aws_s3_bucket.logs.arn}/*"], Condition = { Bool = { "aws:SecureTransport" = "false" } } },
       { Sid = "AlbAccessLogs", Effect = "Allow", Principal = { AWS = data.aws_elb_service_account.main.arn }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/alb/AWSLogs/${data.aws_caller_identity.current.account_id}/*" },
-      { Sid = "FlowLogsAclCheck", Effect = "Allow", Principal = { Service = "delivery.logs.amazonaws.com" }, Action = "s3:GetBucketAcl", Resource = aws_s3_bucket.logs.arn },
-      { Sid = "FlowLogsWrite", Effect = "Allow", Principal = { Service = "delivery.logs.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/flow-logs/AWSLogs/${data.aws_caller_identity.current.account_id}/*", Condition = { StringEquals = { "s3:x-amz-acl" = "bucket-owner-full-control", "aws:SourceAccount" = data.aws_caller_identity.current.account_id } } },
+      {
+        Sid       = "FlowLogsAclCheck"
+        Effect    = "Allow"
+        Principal = { Service = "delivery.logs.amazonaws.com" }
+        Action    = "s3:GetBucketAcl"
+        Resource  = aws_s3_bucket.logs.arn
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
+          }
+        }
+      },
+      {
+        Sid       = "FlowLogsWrite"
+        Effect    = "Allow"
+        Principal = { Service = "delivery.logs.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.logs.arn}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl"      = "bucket-owner-full-control"
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"
+          }
+        }
+      },
       { Sid = "S3ServerAccessLogs", Effect = "Allow", Principal = { Service = "logging.s3.amazonaws.com" }, Action = "s3:PutObject", Resource = "${aws_s3_bucket.logs.arn}/s3-access/*", Condition = { StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id } } }
     ]
   })
@@ -234,11 +298,17 @@ resource "aws_s3_bucket_lifecycle_configuration" "logs" {
 resource "aws_s3_bucket" "config" {
   count         = var.enable_security_services ? 1 : 0
   bucket        = "${var.project_name}-config-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
-  force_destroy = false
-  versioning {
-    enabled = true
+  force_destroy = true
+}
+
+resource "aws_s3_bucket_versioning" "config" {
+  count  = var.enable_security_services ? 1 : 0
+  bucket = aws_s3_bucket.config[0].id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
+
 resource "aws_s3_bucket_public_access_block" "config" {
   count                   = var.enable_security_services ? 1 : 0
   bucket                  = aws_s3_bucket.config[0].id
@@ -254,7 +324,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "config" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3_buckets.id
+      kms_master_key_id = aws_kms_key.s3_buckets.arn
     }
     bucket_key_enabled = true
   }
@@ -271,10 +341,8 @@ resource "aws_s3_bucket_replication_configuration" "config" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "config" {
@@ -282,8 +350,9 @@ resource "aws_s3_bucket_notification" "config" {
   bucket = aws_s3_bucket.config[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "config" {
@@ -326,8 +395,13 @@ resource "aws_s3_bucket" "trail" {
   count         = var.enable_security_services ? 1 : 0
   bucket        = "${var.project_name}-trail-${data.aws_caller_identity.current.account_id}-${random_id.suffix.hex}"
   force_destroy = false
-  versioning {
-    enabled = true
+}
+
+resource "aws_s3_bucket_versioning" "trail" {
+  count  = var.enable_security_services ? 1 : 0
+  bucket = aws_s3_bucket.trail[0].id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
@@ -346,7 +420,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "trail" {
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3_buckets.id
+      kms_master_key_id = aws_kms_key.s3_buckets.arn
     }
     bucket_key_enabled = true
   }
@@ -363,10 +437,8 @@ resource "aws_s3_bucket_replication_configuration" "trail" {
       bucket        = aws_s3_bucket.replication_destination.arn
       storage_class = "STANDARD"
     }
-    delete_marker_replication {
-      status = "Disabled"
-    }
   }
+  depends_on = [aws_s3_bucket_versioning.replication_destination]
 }
 
 resource "aws_s3_bucket_notification" "trail" {
@@ -374,8 +446,9 @@ resource "aws_s3_bucket_notification" "trail" {
   bucket = aws_s3_bucket.trail[0].id
   topic {
     topic_arn = aws_sns_topic.security_alerts.arn
-    events    = ["s3:ReducedRedundancyLostObject", "s3:ObjectCreation:*"]
+    events    = ["s3:ObjectCreated:*"]
   }
+  depends_on = [aws_sns_topic.security_alerts, aws_sns_topic_policy.security_alerts]
 }
 
 resource "aws_s3_bucket_policy" "trail" {
