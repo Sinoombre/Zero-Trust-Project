@@ -129,6 +129,9 @@ El único canal es Session Manager.
 bash
 
 ```bash
+# Variables de apoyo
+export AWS_REGION=us-east-2
+export INSTANCE_ID=$(terraform -chdir=terraform output -raw private_instance_id)
 aws ssm start-session --target "$INSTANCE_ID"
 ```
 
