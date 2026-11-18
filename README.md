@@ -1,8 +1,9 @@
 # Zero Trust en AWS — Proyecto 08
 
 ![Terraform >= 1.5.0](https://img.shields.io/badge/Terraform-%3E%3D1.5.0-7B42BC?logo=terraform)
+[![AWS](https://custom-icon-badges.demolab.com/badge/AWS-%23FF9900.svg?logo=aws&logoColor=white)](#)
 
-Infraestructura como código (Terraform) con arquitectura Zero Trust y cumplimiento de AWS Foundational Security Best Practices, para AWS Academy.
+Infraestructura como código (Terraform) con arquitectura Zero Trust y cumplimiento de AWS Foundational Security Best Practices, para AWS Academy. El flujo principal es que un operador configura variables y aplica el stack Terraform, que provisiona una red y una aplicación protegida junto con controles de seguridad, registro y detección.
 
 ## Estado de Seguridad (Checkov)
 
